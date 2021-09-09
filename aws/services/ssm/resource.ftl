@@ -8,6 +8,12 @@
     }
 ]
 
+[@addOutputMapping
+    provider=AWS_PROVIDER
+    resourceType=AWS_SSM_DOCUMENT_RESOURCE_TYPE
+    mappings=AWS_SSM_DOCUMENT_OUTPUT_MAPPINGS
+/]
+
 [#assign AWS_SSM_MAINTENANCE_WINDOW_OUTPUT_MAPPINGS =
     {
         REFERENCE_ATTRIBUTE_TYPE : {
@@ -15,15 +21,25 @@
         }
     }
 ]
-[@addOutputMapping
-    provider=AWS_PROVIDER
-    resourceType=AWS_SSM_DOCUMENT_RESOURCE_TYPE
-    mappings=AWS_SSM_DOCUMENT_OUTPUT_MAPPINGS
-/]
+
 [@addOutputMapping
     provider=AWS_PROVIDER
     resourceType=AWS_SSM_MAINTENANCE_WINDOW_RESOURCE_TYPE
     mappings=AWS_SSM_MAINTENANCE_WINDOW_OUTPUT_MAPPINGS
+/]
+
+[#assign AWS_SSM_PATCH_BASELINE_OUTPUT_MAPPINGS =
+    {
+        REFERENCE_ATTRIBUTE_TYPE : {
+            "UseRef" : true
+        }
+    }
+]
+
+[@addOutputMapping
+    provider=AWS_PROVIDER
+    resourceType=AWS_SSM_PATCH_BASELINE_RESOURCE_TYPE
+    mappings=AWS_SSM_PATCH_BASELINE_OUTPUT_MAPPINGS
 /]
 
 [#macro createSSMDocument id content tags name="" documentType="" dependencies="" ]
@@ -52,7 +68,7 @@
     cutoffHours
     tags=[]
     scheduleTimezone="Etc/UTC"
-    dependencies=""
+    dependencies=[]
 ]
     [@cfResource
         id=id
@@ -64,14 +80,44 @@
                 "Schedule" : schedule,
                 "Duration" : durationHours,
                 "Cutoff" : cutoffHours,
-                "Tags" : tags,
                 "ScheduleTimezone" : scheduleTimezone
             }
+        tags=tags
         outputs=AWS_SSM_MAINTENANCE_WINDOW_OUTPUT_MAPPINGS
         dependencies=dependencies
     /]
 [/#macro]
 
+[#function getSSMWindowTargets tags=[] instanceIds=[] usePlaceholderInstance=false ]
+    [#local targets = [] ]
+    [#if usePlaceholderInstance ]
+        [#local targets += [
+            {
+                "Key" : "InstanceIds",
+                "Values" : asArray("i-00000000000000000")
+            }
+        ]]
+    [#else]
+        [#list tags as tag ]
+            [#local targets += [
+                {
+                    "Key" : "tag:${tag.Key}",
+                    "Values" : asArray(tag.Value)
+                }
+            ]]
+        [/#list]
+
+        [#if instanceIds?has_content ]
+            [#local targets += [
+                {
+                    "Key" : "InstanceIds",
+                    "Values" : asArray(instanceIds)
+                }
+            ]]
+        [/#if]
+    [/#if]
+    [#return targets]
+[/#function]
 
 [#macro createSSMMaintenanceWindowTarget id
     name
@@ -94,92 +140,6 @@
     /]
 [/#macro]
 
-[#function getSSMWindowTargets tags=[] instanceIds=[] usePlaceholderInstance=false ]
-    [#local targets = [] ]
-    [#if usePlaceholderInstance ]
-        [#local targets += [
-            {
-                "Key" : "InstanceIds",
-                "Values" : asArray("i-00000000000000000")
-            }
-        ]]
-    [#else]
-        [#list tags as tag ]
-            [#local formattedValues = []]
-            [#list asArray(tag.Values) as value ]
-                [#local formattedValues +=  [( "\"" + value + "\"" )] ]
-            [/#list]
-            [#local targets += [
-                {
-                    "Key" : "\"tag:" + tag.Key + "\"",
-                    "Values" : asArray(formattedValues)
-                }
-            ]]
-        [/#list]
-
-        [#if instanceIds?has_content ]
-            [#local targets += [
-                {
-                    "Key" : "InstanceIds",
-                    "Values" : asArray(instanceIds)
-                }
-            ]]
-        [/#if]
-    [/#if]
-    [#return targets]
-[/#function]
-
-[#macro createSSMMaintenanceWindowTask id
-    name
-    targets
-    serviceRoleId
-    windowId
-    taskId
-    taskType
-    taskParameters
-    priority=10
-    maxErrors=0
-    maxConcurrency=1
-    dependencies=""
-]
-
-    [#local taskType = taskType?upper_case ]
-    [@cfResource
-        id=id
-        type="AWS::SSM::MaintenanceWindowTask"
-        properties=
-            {
-                "Name" : name,
-                "MaxErrors" : maxErrors,
-                "ServiceRoleArn" : getReference(serviceRoleId, ARN_ATTRIBUTE_TYPE),
-                "WindowId" : getReference(windowId),
-                "Priority" : priority,
-                "MaxConcurrency" : maxConcurrency,
-                "Targets" : targets,
-                "TaskArn" : ( taskType == "AUTOMATION" )?then(
-                                taskId,
-                                getReference(taskId, ARN_ATTRIBUTE_TYPE)
-                ),
-                "TaskType" : taskType,
-                "TaskInvocationParameters" : {} +
-                    (taskType == "AUTOMATION" )?then(
-                        {
-                            "MaintenanceWindowAutomationParameters" : taskParameters
-                        },
-                        {}
-                    ) +
-                    (taskType == "LAMBDA" )?then(
-                        {
-                            "MaintenanceWindowLambdaParameters" : taskParameters
-                        },
-                        {}
-                    )
-            }
-        dependencies=dependencies
-    /]
-[/#macro]
-
-
 [#function getSSMWindowAutomationTaskParameters parameters documentVersion="" ]
     [#return
         {
@@ -191,7 +151,7 @@
         )]
 [/#function]
 
-[#function getSSMWindowLambdaTaskParamters payload clientContext="" lambdaQualifer="" ]
+[#function getSSMWindowLambdaTaskParameters payload clientContext="" lambdaQualifer="" ]
     [#return
         {
             "Payload" : payload
@@ -205,6 +165,281 @@
             clientContext
         )]
 [/#function]
+
+[#function getSSMWindowRunCommandTaskParameters description=""
+                parameters={}
+                documentHash=""
+                topicId=""
+                notificationRoleId=""
+                notificationEvents=[]
+                notificationType=""
+                resultBucketId=""
+                resultBucketPrefix=""
+                timeout=300
+                documentHashType="Sha256" ]
+    [#return
+        {
+            "TimeoutSeconds" : timeout?number
+        } +
+        attributeIfContent(
+            "Comment",
+            description
+        ) +
+        attributeIfContent(
+            "DocumentHash",
+            documentHash
+        ) +
+        attributeIfTrue(
+            "DocumentHashType",
+            documentHash?has_content,
+            documentHashType
+        ) +
+        attributeIfTrue(
+            "NotificationConfig",
+            notificationEvents?has_content,
+            {
+                "NotificationArn" : getArn(topicId),
+                "NotificationEvents" : asArray(notificationEvents),
+                "NotificationType" : notificationType
+            }
+        ) +
+        attributeIfContent(
+            "OutputS3BucketName",
+            resultBucketId,
+            getReference(resultBucketId, NAME_ATTRIBUTE_TYPE)
+        ) +
+        attributeIfContent(
+            "OutputS3KeyPrefix",
+            resultBucketPrefix
+        ) +
+        attributeIfContent(
+            "Parameters",
+            parameters
+        ) +
+        attributeIfTrue(
+            "ServiceRoleArn",
+            ( notificationEvents?has_content && notificationRoleId?has_content ),
+            getArn(notificationRoleId)
+        )
+    ]
+[/#function]
+
+[#macro createSSMMaintenanceWindowTask id
+    name
+    targets
+    windowId
+    taskId
+    taskType
+    taskParameters={}
+    serviceRoleId=""
+    priority=10
+    maxErrors=1
+    maxConcurrency=1
+    dependencies=""
+]
+
+    [#local taskType = taskType?upper_case ]
+
+    [@cfResource
+        id=id
+        type="AWS::SSM::MaintenanceWindowTask"
+        properties=
+            {
+                "Name" : name,
+                "MaxErrors" : maxErrors?c,
+                "WindowId" : getReference(windowId),
+                "Priority" : priority,
+                "MaxConcurrency" : maxConcurrency?c,
+                "Targets" : targets,
+                "TaskArn" : ( taskType == "AUTOMATION" || taskType == "RUN_COMMAND" )?then(
+                                taskId,
+                                getReference(taskId, ARN_ATTRIBUTE_TYPE)
+                ),
+                "TaskType" : taskType
+            } +
+            attributeIfContent(
+                "TaskInvocationParameters",
+                taskParameters,
+                {} +
+                (taskType == "AUTOMATION" )?then(
+                    {
+                        "MaintenanceWindowAutomationParameters" : taskParameters
+                    },
+                    {}
+                ) +
+                (taskType == "LAMBDA" )?then(
+                    {
+                        "MaintenanceWindowLambdaParameters" : taskParameters
+                    },
+                    {}
+                ) +
+                (taskType == "RUN_COMMAND")?then(
+                    {
+                        "MaintenanceWindowRunCommandParameters" : taskParameters
+                    },
+                    {}
+                ) +
+                (taskType == "STEP_FUNCTIONS")?then(
+                    {
+                        "MaintenanceWindowStepFunctionsParameters" : taskParameters
+                    },
+                    {}
+                )
+            ) +
+            attributeIfContent(
+                "ServiceRoleArn",
+                serviceRoleId,
+                getReference(serviceRoleId, ARN_ATTRIBUTE_TYPE)
+            )
+        dependencies=dependencies
+    /]
+[/#macro]
+
+[#function getSSMPatchBaselinePatchSource name configuration products ]
+    [#return
+        {
+            "Name" : name,
+            "Configuration" : configuration,
+            "Products" : asArray(products)
+        }
+    ]
+[/#function]
+
+[#function getSSMPatchBaselinePatchFilter key values=[] ]
+    [#return
+        {
+            "Key" : key,
+            "Values" : asArray(values)
+        }
+    ]
+[/#function]
+
+[#function getSSMPatchBaselinePatchRule
+            operatingSystem
+            approveAfterDays
+            complianceLevel=""
+            patchFilters=[]
+            enableNonSecurity=false ]
+
+    [#switch operatingSystem]
+        [#case "debian"]
+        [#case "ubuntu"]
+            [#local approveAfterDays = ""]
+            [#break]
+        [#case "windows"]
+            [#local enableNonSecurity = ""]
+            [#break]
+    [/#switch]
+
+    [#return
+        {} +
+        attributeIfContent(
+            "ApproveAfterDays",
+            approveAfterDays,
+            approveAfterDays?number
+        ) +
+        attributeIfContent(
+            "ComplianceLevel",
+            complianceLevel,
+            complianceLevel?upper_case
+        ) +
+        attributeIfContent(
+            "EnableNonSecurity",
+            enableNonSecurity
+        ) +
+        attributeIfTrue(
+            "PatchFilterGroup",
+            ( patchFilters? has_content ),
+            {} +
+            attributeIfContent(
+                "PatchFilters",
+                patchFilters,
+                asArray(patchFilters)
+            )
+        )
+    ]
+[/#function]
+
+[#macro createSSMPatchBaseline id name
+        description=""
+        patchRules={}
+        approvedPatches=[]
+        approvedPatchComplianceLevel=""
+        approveNonSecurityPatches=""
+        globalFilters={}
+        operatingSystem=""
+        patchGroups=[]
+        rejectedPatches=[]
+        rejectedPatchesAction=""
+        sources=[]
+        tags=[]
+        dependencies=[] ]
+
+    [@cfResource
+        id=id
+        type="AWS::SSM::PatchBaseline"
+        properties={
+            "Name" : name
+        } +
+        attributeIfTrue(
+            "ApprovalRules",
+            (approvalRules?has_content),
+            {} +
+            attributeIfContent(
+                "PatchRules",
+                patchRules,
+                asArray(patchRules)
+            )
+        ) +
+        attributeIfContent(
+            "ApprovedPatches",
+            approvedPatches,
+            asArray(approvedPatches)
+        ) +
+        attributeIfContent(
+            "ApprovedPatchesComplianceLevel",
+            approvedPatchComplianceLevel
+        ) +
+        attributeIfContent(
+            "ApprovedPatchesEnableNonSecurity",
+            approveNonSecurityPatches,
+            approveNonSecurityPatches?boolean
+        ) +
+        attributeIfContent(
+            "Description",
+            description
+        ) +
+        attributeIfContent(
+            "GlobalFilters",
+            globalFilters
+        ) +
+        attributeIfContent(
+            "OperatingSystem",
+            operatingSystem
+        ) +
+        attributeIfContent(
+            "PatchGroups",
+            patchGroups,
+            asArray(patchGroups)
+        ) +
+        attributeIfContent(
+            "RejectedPatches",
+            rejectedPatches,
+            asArray(rejectedPatches)
+        ) +
+        attributeIfContent(
+            "RejectedPatchesAction",
+            rejectedPatchesAction,
+            rejectedPatchesAction?upper_case
+        ) +
+        attributeIfContent(
+            "Sources",
+            sources
+        )
+        dependencies=dependencies
+        tags=tags
+    /]
+[/#macro]
 
 [#-- SSM Parameter Resolution in CFN Templates --]
 [#-- Allows for Cloudformation to return parameter data from SSM Paramter Store --]
@@ -243,4 +478,57 @@
         default=default
         description=description
     /]
+[/#macro]
+
+[#-- Common setup resources --]
+[#function getCronScheduleFromMaintenanceWindow maintenanceWindow ]
+
+    [#local cronSections = {
+        "minute" : maintenanceWindow.TimeOfDay?split(":")[1],
+        "hour" : maintenanceWindow.TimeOfDay?split(":")[0],
+        "dayMonth" : "?",
+        "month" : "*",
+        "dayWeek" : maintenanceWindow.DayOfTheWeek[0..2]?upper_case,
+        "year" : "*"
+    }]
+
+    [#return "cron(" + cronSections?values?join(" ") + ")" ]
+[/#function]
+
+[#macro setupComputeInstancePatchWindow ocurrrence
+        windowId
+        windowName
+        opsdataBucketName
+        maintenanceWindow
+        osPatching
+        maxProcessorCount=1
+        instanceUpdateTimeMinutes=30
+        topicId="" ]
+
+    [@createSSMMaintenanceWindow
+        id=windowId
+        name=windowName
+        schedule=getCronScheduleFromMaintenanceWindow(maintenanceWindow)
+        durationHours=(maxProcessorCount * instanceUpdateTimeMinutes) / 60
+        tags=getOccurrenceCoreTags(ocurrrence, ocurrrence.Core.FullName)
+        scheduleTimezone=maintenanceWindow.TimeZone
+    /]
+
+    [#-- Patch Window --]
+    [@createSSMMaintenanceWindowTask
+        id
+        name
+        targets
+        serviceRoleId
+        windowId
+        taskId
+        taskType
+        taskParameters
+        priority=10
+        maxErrors=1
+        maxConcurrency=1
+        dependencies=""
+    /]
+
+
 [/#macro]

@@ -24,6 +24,13 @@
     [#local bastionLgName = resources["lg"].Name]
     [#local bastionOS = (solution.ComputeInstance.OperatingSystem.Family)!"linux"]
 
+    [#local bastionASGTags = getOccurrenceCoreTags(
+                        occurrence,
+                        bastionAutoScaleGroupName
+                        "",
+                        true
+                    )]
+
     [#local bastionType = occurrence.Core.Type]
     [#local configSetName = bastionType]
 
@@ -192,6 +199,102 @@
         /]
 
         [#if deploymentSubsetRequired("bastion", true)]
+
+            [#-- Create SSM Maintenance window --]
+            [#local computeMaintenanceWindow = solution.ComputeInstance.MaintenanceWindow ]
+
+            [#local windowId = resources["maintenanceWindow"].Id ]
+            [#local windowName = resources["maintenanceWindow"].Name ]
+
+            [#local windowTargetId = resources["maintenanceWindowTarget"].Id ]
+            [#local windowTargetName = resources["maintenanceWindowTarget"].Name ]
+
+            [#local patchingTaskId = resources["patchingMaintenanceTask"].Id ]
+            [#local patchingTaskName = resources["patchingMaintenanceTask"].Name ]
+
+            [#local maintenanceRoleId = resources["maintenanceRole"].Id ]
+
+            [#local targetTags = bastionASGTags?filter( x-> ["Name", "cot:account", "cot:environment", "cot:product", "cot:segment" ]?seq_contains(x.Key))]
+
+            [#-- Setup SSM Maintenance Window --]
+            [@createSSMMaintenanceWindow
+                id=windowId
+                name=windowName
+                schedule=getCronScheduleFromMaintenanceWindow(computeMaintenanceWindow)
+                durationHours=1
+                cutoffHours=0
+                tags=getOccurrenceCoreTags(ocurrrence, windowName)
+                scheduleTimezone=computeMaintenanceWindow.TimeZone
+            /]
+
+            [@createSSMMaintenanceWindowTarget
+                id=windowTargetId
+                name=windowTargetName
+                windowId=windowId
+                targets=getSSMWindowTargets(targetTags)
+            /]
+
+            [#-- Setup Patching --]
+            [@createSSMMaintenanceWindowTask
+                id=patchingTaskId
+                name=patchingTaskName
+                targets=[ {
+                    "Key" : "WindowTargetIds",
+                    "Values" : [ getReference(windowTargetId)]
+                } ]
+                windowId=windowId
+                serviceRoleId=maintenanceRoleId
+                taskId="AWS-RunPatchBaseline"
+                taskType="RUN_COMMAND"
+                taskParameters=getSSMWindowRunCommandTaskParameters(
+                    "Install Security patch baseline",
+                    {
+                        "Operation" : [ "Install" ],
+                        "RebootOption" : [ "RebootIfNeeded" ]
+                    }
+                )
+            /]
+
+            [@createRole
+                id=maintenanceRoleId
+                trustedServices=[
+                    "ssm.amazonaws.com"
+                ]
+                policies=
+                    [
+                        getPolicyDocument(
+                            [
+                                getPolicyStatement(
+                                    [
+                                        "ssm:CancelCommand",
+                                        "ssm:GetCommandInvocation",
+                                        "ssm:ListCommandInvocations",
+                                        "ssm:ListCommands",
+                                        "ssm:SendCommand",
+                                        "ssm:GetAutomationExecution",
+                                        "ssm:GetParameters",
+                                        "ssm:StartAutomationExecution",
+                                        "ssm:ListTagsForResource",
+                                        "ssm:GetCalendarState"
+                                    ]
+                                ),
+                                getPolicyStatement(
+                                    [
+                                        "ssm:UpdateServiceSetting",
+                                        "ssm:GetServiceSetting"
+                                    ],
+                                    [
+                                        "arn:aws:ssm:*:*:servicesetting/ssm/opsitem/*",
+                                        "arn:aws:ssm:*:*:servicesetting/ssm/opsdata/*"
+                                    ]
+                                )
+                            ],
+                            "basic"
+                        )
+                    ]
+                tags=getOccurrenceCoreTags(occurrence)
+            /]
+
             [@createSecurityGroup
                 id=bastionSecurityGroupToId
                 name=bastionSecurityGroupToName
@@ -246,12 +349,7 @@
                 processorProfile=processorProfile
                 autoScalingConfig=solution.AutoScaling
                 multiAZ=multiAZ
-                tags=getOccurrenceCoreTags(
-                        occurrence,
-                        bastionAutoScaleGroupName
-                        "",
-                        true
-                    )
+                tags=bastionASGTags
                 networkResources=networkResources
             /]
 

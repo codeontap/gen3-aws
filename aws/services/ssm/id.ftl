@@ -7,23 +7,33 @@
     service=AWS_SYSTEMS_MANAGER_SERVICE
     resource=AWS_SSM_DOCUMENT_RESOURCE_TYPE
 /]
+
 [#assign AWS_SSM_MAINTENANCE_WINDOW_RESOURCE_TYPE = "ssmMaintenanceWindow" ]
 [@addServiceResource
     provider=AWS_PROVIDER
     service=AWS_SYSTEMS_MANAGER_SERVICE
     resource=AWS_SSM_MAINTENANCE_WINDOW_RESOURCE_TYPE
 /]
+
 [#assign AWS_SSM_MAINTENANCE_WINDOW_TARGET_RESOURCE_TYPE = "ssmWindowTarget" ]
 [@addServiceResource
     provider=AWS_PROVIDER
     service=AWS_SYSTEMS_MANAGER_SERVICE
     resource=AWS_SSM_MAINTENANCE_WINDOW_TARGET_RESOURCE_TYPE
 /]
+
 [#assign AWS_SSM_MAINTENANCE_WINDOW_TASK_RESOURCE_TYPE = "ssmWindowTask" ]
 [@addServiceResource
     provider=AWS_PROVIDER
     service=AWS_SYSTEMS_MANAGER_SERVICE
     resource=AWS_SSM_MAINTENANCE_WINDOW_TASK_RESOURCE_TYPE
+/]
+
+[#assign AWS_SSM_PATCH_BASELINE_RESOURCE_TYPE = "ssmPatchBaseline"]
+[@addServiceResource
+    provider=AWS_PROVIDER
+    service=AWS_SYSTEMS_MANAGER_SERVICE
+    resource=AWS_SSM_PATCH_BASELINE_RESOURCE_TYPE
 /]
 
 

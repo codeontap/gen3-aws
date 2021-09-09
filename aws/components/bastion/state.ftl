@@ -60,6 +60,26 @@
                                 formatResourceId(AWS_EC2_LAUNCH_CONFIG_RESOURCE_TYPE, core.Id)
                     ),
                     "Type" : AWS_EC2_LAUNCH_CONFIG_RESOURCE_TYPE
+                },
+                "maintenanceWindow" : {
+                    "Id" : formatResourceId(AWS_SSM_MAINTENANCE_WINDOW_RESOURCE_TYPE, core.Id),
+                    "Name" : core.FullName,
+                    "Type" : AWS_SSM_MAINTENANCE_WINDOW_RESOURCE_TYPE
+                },
+                "maintenanceWindowTarget" : {
+                    "Id" : formatResourceId(AWS_SSM_MAINTENANCE_WINDOW_TARGET_RESOURCE_TYPE, core.Id),
+                    "Name" : core.FullName,
+                    "Type" : AWS_SSM_MAINTENANCE_WINDOW_TARGET_RESOURCE_TYPE
+                },
+                "patchingMaintenanceTask" : {
+                    "Id" : formatResourceId(AWS_SSM_MAINTENANCE_WINDOW_TASK_RESOURCE_TYPE, core.Id, "patching"),
+                    "Name" : formatName(core.FullName, "patching"),
+                    "Type" : AWS_SSM_MAINTENANCE_WINDOW_TASK_RESOURCE_TYPE
+                },
+                "maintenanceRole" : {
+                    "Id" : formatResourceId(AWS_IAM_ROLE_RESOURCE_TYPE, core.Id, "maintenance"),
+                    "Type" : AWS_IAM_ROLE_RESOURCE_TYPE,
+                    "IncludeInDeploymentState" : false
                 }
             },
             "Attributes" : {
