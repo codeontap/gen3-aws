@@ -1,8 +1,8 @@
 [#ftl]
 
 [#macro aws_cdn_cf_state occurrence parent={} ]
-    [#local core = occurrence.Core]
-    [#local solution = occurrence.Configuration.Solution]
+    [#local core = getOccurrenceCore(occurrence) ]
+    [#local solution = getOccurrenceSolution(occurrence) ]
 
     [#local cfId  = formatResourceId(AWS_CLOUDFRONT_DISTRIBUTION_RESOURCE_TYPE, core.Id)]
     [#local cfName = core.FullName]
@@ -63,6 +63,42 @@
     ]
 [/#macro]
 
+[#macro aws_cdn_dns_cf_state occurrence parent={} ]
+    [#local core = getOccurrenceCore(occurrence) ]
+    [#local solution = getOccurrenceSolution(occurrence) ]
+
+    [#-- Assemble the required DNS entries ready for the generic AWS setup handler --]
+    [#local entries = {} ]
+
+    [#if isPresent(solution.Certificate) ]
+        [#local certificateObject = getCertificateObject(solution.Certificate) ]
+        [#local hostName = getHostName(certificateObject, occurrence) ]
+
+        [#-- Get alias list --]
+        [#list certificateObject.Domains as domain]
+            [#local entries +=
+                {
+                    "dns" + domain?counter : {
+                        "Id" : "dnsentry",
+                        "Type" : "dnsentry",
+                        "FQDN" : formatDomainName(hostName, domain.Name)
+                    }
+                }
+            ]
+        [/#list]
+    [/#if]
+
+    [#assign componentState =
+        {
+            "Resources" : entries,
+            "Attributes" : {},
+            "Roles" : {
+                "Inbound" : {},
+                "Outbound" : {}
+            }
+        }
+    ]
+[/#macro]
 
 [#macro aws_cdnroute_cf_state occurrence parent={} ]
     [#local core = occurrence.Core]
