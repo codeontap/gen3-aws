@@ -73,6 +73,9 @@
 [#assign AWS_NETWORK_FIREWALL_SERVICE = "networkfirewall"]
 [@addService provider=AWS_PROVIDER  service=AWS_NETWORK_FIREWALL_SERVICE /]
 
+[#assign AWS_ORGANIZATIONS_SERVICE = "organizations"]
+[@addService provider=AWS_PROVIDER  service=AWS_ORGANIZATIONS_SERVICE /]
+
 [#assign AWS_PINPOINT_SERVICE = "pinpoint"]
 [@addService provider=AWS_PROVIDER  service=AWS_PINPOINT_SERVICE /]
 
