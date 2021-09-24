@@ -87,50 +87,27 @@
 
         [#local scriptName = "data_volume_mount_" + replaceAlphaNumericOnly(deviceId) ]
 
-        [#local script = [
-            'select disk ${diskId} ',
-            'attributes disk clear readonly '
-        ]]
-
-        [#local script += [
-            'create partition primary '
-        ]]
-        
         [#local execScript = [
-            'Start-Transcript -Path c:\\ProgramData\\Hamlet\\Logs\\${scriptName}.log ;',
+            'Start-Transcript -Path c:\\ProgramData\\Hamlet\\Logs\\${scriptName}.log -Append ;',
             'echo "Starting volume mount" ;',
             'echo "diskId = ${diskId}"; ',
             'echo "deviceId = ${deviceId}"; ',
             'echo "osMount = ${osMount}"; '
         ]]
-
-        [#if osMount?length == 1 ]
-            [#local script += [ 'assign letter="${osMount}" ' ]]
-        [#else]
-            [#local script += [ 'assign mount="${osMount}" ' ]]
-            [#local execScript += [
-                'mkdir ${osMount} ;'
-            ]]
-        [/#if]
-        [#local script += [ 'select volume ${diskId} ' ]]
-        [#local script += [ 'format FS=NTFS NOWAIT ' ]]
-
         [#local execScript += [
-            'diskpart /s c:\\ProgramData\\Hamlet\\Scripts\\${scriptName}.txt 2>&1 | Write-Output ;',
-            'Stop-Transcript | out-null'
+            r"$volExists = Get-Volume | Where-Object {$_.DriveLetter -like '" + osMount + r"' } ;",
+            'if($volExists) {',
+            '   echo "Disk already formatted - ${osMount}" ;'
+            '} else { ;'
+            '   Initialize-Disk -Number ${diskId} -PartitionStyle MBR 2>&1 | Write-Output ;'
+            '   new-partition -disknumber ${diskId} -usemaximumsize | format-volume -filesystem NTFS -newfilesystemlabel vol-${deviceId} 2>&1 | Write-Output ;',
+            '   get-partition -disknumber ${diskId} | set-partition -newdriveletter ${osMount} 2>&1 | Write-Output',
+            '}'
         ]]
 
-        [#local files += {
-            "c:\\ProgramData\\Hamlet\\Scripts\\${scriptName}.txt" : {
-                "content" : {
-                    "Fn::Join" : [
-                        "\n",
-                        script
-                    ]
-                },
-                "mode" : "000755"
-            }
-        }]
+        [#local execScript += [
+            'Stop-Transcript | out-null'
+        ]]
 
         [#local files += {
             "c:\\ProgramData\\Hamlet\\Scripts\\${scriptName}.ps1" : {

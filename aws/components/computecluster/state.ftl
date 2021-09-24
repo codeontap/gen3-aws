@@ -65,6 +65,7 @@
                         COMPUTE_TASK_FILE_DIR_CREATION,
                         COMPUTE_TASK_HAMLET_ENVIRONMENT_VARIABLES,
                         COMPUTE_TASK_OS_SECURITY_PATCHING,
+                        COMPUTE_TASK_ANTIVIRUS_CONFIG,
                         COMPUTE_TASK_AWS_CLI,
                         COMPUTE_TASK_SYSTEM_LOG_FORWARDING,
                         COMPUTE_TASK_USER_ACCESS,

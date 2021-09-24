@@ -62,7 +62,10 @@
     [/#if]
 
     [@computeTaskConfigSection
-        computeTaskTypes=[ COMPUTE_TASK_OS_SECURITY_PATCHING ]
+        computeTaskTypes=[ 
+            COMPUTE_TASK_OS_SECURITY_PATCHING, 
+            COMPUTE_TASK_ANTIVIRUS_CONFIG 
+        ]
         id="OSPatching"
         priority=1
         engine=AWS_EC2_CFN_INIT_COMPUTE_TASK_CONFIG_TYPE

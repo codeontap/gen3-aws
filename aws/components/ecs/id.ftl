@@ -1,7 +1,12 @@
 [#ftl]
 [@addResourceGroupInformation
     type=ECS_COMPONENT_TYPE
-    attributes=[]
+    attributes=[
+        {
+            "Names" : "AntiVirus",
+            "AttributeSet" : AWS_ANTIVIRUS_ATTRIBUTESET_TYPE
+        }
+    ]
     provider=AWS_PROVIDER
     resourceGroup=DEFAULT_RESOURCE_GROUP
     services=

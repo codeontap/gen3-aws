@@ -97,4 +97,45 @@
         ]
     /]
 
+    [@computeTaskConfigSection
+        computeTaskTypes=[ COMPUTE_TASK_AWS_CLI ]
+        id="CFNHup"
+        priority=1
+        engine=AWS_EC2_CFN_INIT_COMPUTE_TASK_CONFIG_TYPE
+        content={
+            "files": {
+                "c:\\cfn\\cfn-hup.conf" : {
+                    "content" : { "Fn::Join" : ["", [
+                    "[main]\n",
+                    "stack=", { "Ref" : "AWS::StackName" }, "\n",
+                    "region=", { "Ref" : "AWS::Region" }, "\n"
+                    ]]}
+                },
+                "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf" : {
+                    "content": { "Fn::Join" : ["", [
+                    "[cfn-auto-reloader-hook]\n",
+                    "triggers=post.update\n",
+                    "path=Resources.",
+                        computeResourceId,
+                        ".Metadata.AWS::CloudFormation::Init\n",
+                    "action=cfn-init.exe ",
+                        " -v -s ", { "Ref" : "AWS::StackName" },
+                        " -r ", computeResourceId,
+                        " --configsets ", computeResourceId,
+                        " --region ", { "Ref" : "AWS::Region" }, "\n"
+                    ]]}
+                }
+            },
+            "services" : {
+                "windows" : {
+                    "cfn-hup" : {
+                        "enabled" : "true",
+                        "ensureRunning" : "true",
+                        "files" : ["c:\\cfn\\cfn-hup.conf", "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf"]
+                    }
+                }
+            }
+        }
+    /]
+
 [/#macro]
