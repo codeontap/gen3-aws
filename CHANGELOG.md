@@ -1,6 +1,98 @@
 # Changelog
 
-## Unreleased (2021-07-07)
+## Unreleased (2021-09-24)
+
+#### Fixes
+
+* (directory): hostname configuration option
+* check for assigment type ([#415](https://github.com/hamlet-io/engine-plugin-aws/issues/415))
+
+Full set of changes: [`8.3.0...5c67b7b`](https://github.com/hamlet-io/engine-plugin-aws/compare/8.3.0...5c67b7b)
+
+## 8.3.0 (2021-09-17)
+
+#### New Features
+
+* (ds): New Component - Directory Services ([#392](https://github.com/hamlet-io/engine-plugin-aws/issues/392))
+* (av): Windows Defender logging to CloudWatch and definition updates ([#409](https://github.com/hamlet-io/engine-plugin-aws/issues/409))
+* (cache): handle new redis versions
+* (firewall): fix link issue for destinations
+* (firewall): destination route support ([#405](https://github.com/hamlet-io/engine-plugin-aws/issues/405))
+* (lb): add check for conditions on default
+* (cdn): include internal fqdn in state
+* (gateway): support IGW internal routing
+* add tests for hostname filter checking
+* (iam): tags ([#386](https://github.com/hamlet-io/engine-plugin-aws/issues/386))
+* add support for http backends on cdn
+* initial test cases for firewall
+* add initial firewall implementation
+* add support for resource type mocks
+* (apigateway): tags ([#371](https://github.com/hamlet-io/engine-plugin-aws/issues/371))
+* add route53resolver service
+* (network): dns query logging
+* windows based ec2 instances ([#301](https://github.com/hamlet-io/engine-plugin-aws/issues/301))
+* (SNS): tags
+* add all account units
+* (tests): add basic testing for service
+* support output suffixes on template setup
+* set larger default value for SQS MessageRetentionPeriod
+#### Fixes
+
+* (bastion): fix eip allocation
+* (firewall): align routes to AZ endpoints
+* (cache): zone config params
+* (firewall): provide occurrence for ip address
+* (firewall): missing reference for stateful rule ([#404](https://github.com/hamlet-io/engine-plugin-aws/issues/404))
+* typo
+* (igw): firewall route hanlding
+* (queuehost): reference to wrong sec group id
+* (firewall): include sid for stateful rules ([#399](https://github.com/hamlet-io/engine-plugin-aws/issues/399))
+* whatif processing ([#400](https://github.com/hamlet-io/engine-plugin-aws/issues/400))
+* API Gateway deployment tags ([#401](https://github.com/hamlet-io/engine-plugin-aws/issues/401))
+* (network): handling missing network on segments ([#398](https://github.com/hamlet-io/engine-plugin-aws/issues/398))
+* (baseline): handle aws required ssh key format
+* (firewall): s3 log type detection
+* openapi stripping ([#395](https://github.com/hamlet-io/engine-plugin-aws/issues/395))
+* handle empty domain names on api gateway
+* force certificate if required
+* (lb): allow hostname config on http and https
+* (lb): handle missing fqdn ([#377](https://github.com/hamlet-io/engine-plugin-aws/issues/377))
+* set windows instance sizes to usable defaults
+* network tests ([#382](https://github.com/hamlet-io/engine-plugin-aws/issues/382))
+* legacy VPC detection
+* vpc mock value
+* service definition details
+* handle missing domains for cert formatting
+* bastion eip
+* account cmk deployment scope
+* missing deployment unit
+* (ecs): fix profile lookup for subcomponents ([#357](https://github.com/hamlet-io/engine-plugin-aws/issues/357))
+#### Refactorings
+
+* (lb): support for default rule control
+* (network): testing updates
+* use paramters for az - cfnlint
+* move fqdn and certs to state
+#### Others
+
+* testing updates
+* (network): testing coverage
+
+Full set of changes: [`8.2.1...8.3.0`](https://github.com/hamlet-io/engine-plugin-aws/compare/8.2.1...8.3.0)
+
+## 8.2.1 (2021-07-09)
+
+#### Fixes
+
+* syntax typo
+* (ci): tag push tigger
+#### Refactorings
+
+* release process tag support
+
+Full set of changes: [`8.2.0...8.2.1`](https://github.com/hamlet-io/engine-plugin-aws/compare/8.2.0...8.2.1)
+
+## 8.2.0 (2021-07-09)
 
 #### New Features
 
@@ -57,8 +149,9 @@
 #### Others
 
 * include build details in container image
+* changelog bump ([#347](https://github.com/hamlet-io/engine-plugin-aws/issues/347))
 
-Full set of changes: [`8.1.2...2540ff0`](https://github.com/hamlet-io/engine-plugin-aws/compare/8.1.2...2540ff0)
+Full set of changes: [`8.1.2...8.2.0`](https://github.com/hamlet-io/engine-plugin-aws/compare/8.1.2...8.2.0)
 
 ## 8.1.2 (2021-05-17)
 
