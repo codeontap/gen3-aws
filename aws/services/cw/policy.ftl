@@ -34,6 +34,28 @@
     )]
 [/#function]
 
+[#function cwMetricsConsumePermission namespace="*"]
+    [#return
+        [
+            getPolicyStatement(
+                [
+                    "cloudwatch:GetMetricData"
+                ],
+                "*",
+                "",
+                (namespace != "*" )?then(
+                    {
+                        "StringEquals" : {
+                            "cloudwatch:namespace" : namespace
+                        }
+                    },
+                    {}
+                )
+            )
+        ]
+    ]
+[/#function]
+
 
 [#function cwLogsProducePermission logGroupName="" ]
     [#return cwLogsPolicy(
@@ -67,6 +89,13 @@
                 )
             )
         ]
+    ]
+[/#function]
+
+[#function cwMetricsAllPermission namespace="*"]
+    [#return
+        cwLogsProducePermission(namespace) +
+        cwLogsConsumePermission(namespace)
     ]
 [/#function]
 
