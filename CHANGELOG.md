@@ -1,21 +1,27 @@
 # Changelog
 
-## latest (2024-09-18)
+## latest (2025-02-10)
 
 #### New Features
 
+* add a default extension for cloudwatch alarm module
 * WAFACLs to support IPV6
 * waf service to support IPV6 CIDRs
 * initial deployment contract support ([#800](https://github.com/hamlet-io/engine-plugin-aws/issues/800))
 * support recommended token auth method for Pinpoint channels ([#805](https://github.com/hamlet-io/engine-plugin-aws/issues/805))
 #### Fixes
 
+* (waf): check if addresses is empty before testing for ip version
+* add tagPatternList for tagged max count ECR lifecycle rule ([#813](https://github.com/hamlet-io/engine-plugin-aws/issues/813))
+* (ecs): set security group for a scheduled task ([#812](https://github.com/hamlet-io/engine-plugin-aws/issues/812))
+* add host to list of network modes
 * update input regex for alb service logs table
 * connectionTimeout attribute
 * autoMinorVersionUpdate flag for Amazon MQ resource
 * cdn origin request policy headers
 #### Others
 
+* update changelog ([#810](https://github.com/hamlet-io/engine-plugin-aws/issues/810))
 * update changelog ([#804](https://github.com/hamlet-io/engine-plugin-aws/issues/804))
 * pin cfn-lint for now to pass the tests and produce uncicyle
 
